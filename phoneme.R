@@ -55,10 +55,10 @@ bagged.err <- bagged.cv(data.pca, nb.pca)
 rf.err <- bagged.cv(data.pca, nb.pca)
 
 #------SVM------#
-c.min <- svm.c.cv(train.pca, nb.pca, kernel="vanilladot") # 0.01
+svm.linear.c <- svm.c.cv(data.pca, nb.pca, kernel="vanilladot") # 0.01
 svm.linear.err <- svm.cv(data.pca, nb.pca, "vanilladot", 0.01)
 
-c.min <- svm.c.cv(train.pca, nb.pca, kernel="rbfdot") # 1
+svm.gaus.c <- svm.c.cv(data.pca, nb.pca, kernel="rbfdot") # 1
 svm.gaus.err <- svm.cv(data.pca, nb.pca, "rbfdot", 1)
 
 #------Neural Networks------#
@@ -68,7 +68,7 @@ dnn.err <- dnn.cv(data.pca, nb.pca, nb.class)
 cnn.err <- cnn.cv(data.pca, nb.pca, nb.class, 8)
 
 # Save model #
-model %>% save_model_hdf5("keras_out.h5")
+model %>% save_model_hdf5("Rapport/keras_out.h5")
 model.serialize <- serialize_model(load_model_hdf5("keras_out.h5"))
 model <- unserialize_model(model.serialize)
 

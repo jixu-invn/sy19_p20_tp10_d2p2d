@@ -23,7 +23,7 @@ ann.cv <- function(data, n.in, n.out) {
       layer_dense(units=n.out, activation="softmax")
     model %>% compile(loss="categorical_crossentropy", optimizer='adam', metrics='accuracy')
     model %>% fit(as.matrix(train[,-(n.in+1)]), model.matrix(~ -1 + y, data=train),
-                             epochs=30, batch_size=32, validation_split=0.3)
+                             epochs=30, batch_size=128, validation_split=0.3)
     res <- model %>% evaluate(as.matrix(test[,-(n.in+1)]), model.matrix(~ -1 + y, data=test))
     err[k] <- res[2]
   }
@@ -43,14 +43,14 @@ dnn.cv <- function(data, n.in, n.out) {
     test <- data[folds==k,]
     model <- keras_model_sequential()
     model %>% layer_dense(units=n.in, activation="relu", input_shape=n.in) %>%
-      layer_dense(units=n.in*2, activation="relu") %>%
+      layer_dense(units=32, activation="relu") %>%
       layer_dropout(0.5) %>%
-      layer_dense(units=as.integer(n.in/2), activation="relu") %>%
+      layer_dense(units=16, activation="relu") %>%
       layer_dropout(0.5) %>%
       layer_dense(units=n.out, activation="softmax")
     model %>% compile(loss="categorical_crossentropy", optimizer='adam', metrics='accuracy')
     model %>% fit(as.matrix(train[,-(n.in+1)]), model.matrix(~ -1 + y, data=train),
-                  epochs=30, batch_size=32, validation_split=0.3)
+                  epochs=30, batch_size=128, validation_split=0)
     res <- model %>% evaluate(as.matrix(test[,-(n.in+1)]), model.matrix(~ -1 + y, data=test))
     err[k] <- res[2]
   }
@@ -86,7 +86,7 @@ cnn.cv <- function(data, n.in, n.out, n.dim=16) {
       layer_dense(units=nb.class, activation="softmax")
     model %>% compile(loss="categorical_crossentropy", optimizer='adam', metrics='accuracy')
     model %>% fit(train.x, model.matrix(~ -1 + y, data=train),
-                  epochs=30, batch_size=32, validation_split=0.3)
+                  epochs=30, batch_size=128, validation_split=0.3)
     res <- model %>% evaluate(test.x, model.matrix(~ -1 + y, data=test))
     err[k] <- res[2]
   }

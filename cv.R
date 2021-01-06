@@ -209,11 +209,12 @@ svm.c.cv <- function(data, p, kernel) {
   library("kernlab")
   CC<-c(0.001,0.01,0.1,1,10,100,1000,10e4)
   N<-length(CC)
-  M<-10 # nombre de répétitions de la validation croisée
+  M<-1 # nombre de répétitions de la validation croisée
   err<-matrix(0,N,M)
   x <- as.matrix(data[, -(p+1)])
   for(k in 1:M){
     for(i in 1:N){
+      message(i)
       if (kernel == "vanilladot") {
         err[i,k]<-cross(ksvm(x=x, y=data$y, 
                              type="C-svc", 
@@ -233,7 +234,7 @@ svm.c.cv <- function(data, p, kernel) {
   }
   Err<-rowMeans(err)
   plot(CC,Err,type="b",log="x",xlab="C",ylab="CV error")
-  return(CC[which.min(Err)])
+  return(Err)
 }
 
 svm.cv <- function(data, p, kernel, c) {

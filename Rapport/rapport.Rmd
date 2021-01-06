@@ -1,0 +1,119 @@
+---
+title: "Projet SY19 - Régression et classification"
+author: "Tom Bourg, Guillaume Sabbagh, Jiali Xu"
+date: "06/01/2021"
+lang: "fr-fr"
+geometry: margin=2cm
+output:
+  bookdown::pdf_document2 : 
+    toc : false
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(fig.align = "center")
+#load("env.RData")
+```
+
+# Phoneme
+
+```{r, include=FALSE}
+load("phoneme.RData")
+library(keras)
+model.serialize <- serialize_model(load_model_hdf5("keras_out.h5"))
+model <- unserialize_model(model.serialize)
+```
+
+## Analyse exploratoire
+
+Dans cette première partie, il s'agit d'une classification des phonemes. Le jeu de données contient 2250 observations avec 256 préditeurs et une seule variables de réponse. On observe que la classification est en 5 classes et tous les préditeurs sont quantitatives. 
+
+```{r phoneme-aexp, echo=FALSE}
+summary(data$y)
+```
+
+On remarque ici que le nombre d'observation n'est pas balancé parmi les classes. 
+
+## Analyse de Composantes Principales 
+
+On s'intéresse à une analyse de composantes principales afin de réduire le nombre de préditeurs sachant que 256 est assez nombreux. A l'aide de la fonction *prcomp()*, on trace la proportion de variance expliquée cumulée en fonction du nombre de composante dans la figure \@ref(fig:phoneme-pca) dessous. 
+
+```{r phoneme-pca, echo=FALSE, fig.cap="Proportion de variance expliquée cumulée", out.width="50%"}
+plot(cumsum(res.pca$sdev^2 / sum(res.pca$sdev^2)), type="l", ylim=0:1, ylab = "Cumulative Proportion", xlab = "number of PCs")
+```
+
+On constate que les 107 premières composantes expliquent 95% de variance. Du fait que pour les réseaux neurones, le nombre de ports d'entrée de chaque couche est préférable d'être exponentiel de 2, on choisit ici 128 composantes pour les traitements suivants.
+
+## Apprentissage de modèles
+
+### LDA, QDA et Naive-Bayes
+
+Le package **MASS** nous propose des fonctions pour LDA et QDA et le pakcage **naivebayes** pour un modèle Naive-Bayes. On observe que le taux d'erreur du modèle QDA est beaucoup plus haut que les deux autres. De ce fait, on constate que la matrice de covariance pour chaque classe reste presque identique. 
+
+### Regression Logistique
+
+Afin de réaliser une regression logistique pour une classification multinomiale, on utilise le modèle *multinom()* dans le package **nnet**. A partir de cette méthode, on réalise également un modèle additive généralisé en ajoutant un *natural cubic spline*. 
+
+Ensuite, on teste la regression ridge et lasso. Le package **glmnet** nous permet de trouver *lambda* optimisé en faisant une validation croisée. Le modèle lasso nous donne un meilleur résultat. 
+
+### Arbres de regression
+
+Pour les méthodes basées sur arbre, on a essayé une arbre binaire de décision *rpart()* du package **rpart** et son élagage en choisissant une valeur **CP** qui minimise l'erreur de validation croisée. On a également réalisé un modèle **Bagging** et **RandomForest** en appliquant différentes valeurs de *mtry*.
+
+### SVM
+
+La fonction *ksvm* du package **kernlab** est utilisée pour tester avec deux noyaux différents. Pour chaque noyau, on fait d'abord une validation croissée pour trouve une valeur **C** optimisée parmi un ensemble [0.001, 0.01, 0.1, 1, 10, 100, 1000, 10e4].
+
+```{r phoneme-svm, echo=FALSE, fig.cap="Performance de modèles", fig.show="hold", out.width="45%"}
+CC<-c(0.001,0.01,0.1,1,10,100,1000,10e4)
+plot(CC,svm.linear.c,type="b",log="x",xlab="C",ylab="CV error (linear)")
+plot(CC,svm.gaus.c,type="b",log="x",xlab="C",ylab="CV error (gaussian)")
+```
+
+### Réseaux neurones
+
+#### Réseau neurone artificiel
+
+On s'intéresse d'abord au réseau neurone artificiel avec deux couches. Sachant que nous sommes sur un problematique de classification, la fonction d'activation pour la couche de sortie est donc *softmax*. On paramètre *batch_size* à 128 et *epoch* à 30. 
+
+#### Réseau neurone profond régularisé
+
+Un réseau neurone profond est un réseau neurone artificiel avec plusieurs couches. Ici, on réalise un réseau neurone profond avec 4 *layer_dense* et 2 *layer_dropout*. On fixe le coefficient à 0.5 pour les couche de régulation afin d'éviter un surapprentissage. On applique une fonction d'activation *relu* pour tous les couches sauf celui de sortie. Les hyperparamètres à optimiser sont donc *units* des deux couches au milieu. Après des essais en utilisant une validation croisée, on n'observe pas une amélioration très évidente pour les différentes valeurs.
+
+#### Réseau neurone convolutionnel
+
+Enfin, on effectue un essai sur un réseau neurone convolutionnel. Pour ce faire, il nous faut d'abord convertir les données en matrice 3D. Dans ce cas, la dimension de matrice de notre données est 2250\*128 (après extraction de caractéristique). On choisit de la convertir en dimension 2250\*16\*8. La structure de modèle est comme ci-dessous. 
+
+```{r phoneme-rnc, echo=FALSE}
+summary(model)
+```
+
+## Comparaison de modèle
+
+A la fin, on fait une comparaison de tous les modèles réalisés. Voir les performance sur figure \@ref(fig:phoneme-mdl) et \@ref(fig:phoneme-nn)
+
+```{r phoneme-mdl, echo=FALSE, fig.cap="Performance de modèles", out.width="120%"}
+boxplot(lda.err, qda.err, nb.err,
+        multinom.err, ridge.err, lasso.err,
+        gam.err,
+        rpart.err, prune.err, 
+        bagged.err, rf.err,
+        svm.linear.err, svm.gaus.err,
+        names=c("lda", "qda", "nb", 
+                "lr", "rid", "las",
+                "gam",
+                "rpa", "pru",
+                "bag", "rf",
+                "svml", "svmg"))
+```
+
+```{r phoneme-nn, echo=FALSE, fig.cap="Performance de réseau neurone", out.width="50%"}
+boxplot(ann.err,
+        dnn.err,
+        cnn.err,
+        names=c("ann", 
+                "dnn",
+                "cnn"))
+```
+
+On constate que le modèle réseau neurone profond nous donne une précision la plus haute et une variance plus petite. 
+

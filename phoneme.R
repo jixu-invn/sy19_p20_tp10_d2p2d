@@ -52,7 +52,7 @@ rpart.err <- rpart.cv(data.pca, nb.pca)
 prune.err <- prune.cv(data.pca, nb.pca)
 
 bagged.err <- bagged.cv(data.pca, nb.pca)
-rf.err <- bagged.cv(data.pca, nb.pca)
+rf.err <- rf.cv(data.pca, nb.pca)
 
 #------SVM------#
 svm.linear.c <- svm.c.cv(data.pca, nb.pca, kernel="vanilladot") # 0.01
@@ -67,27 +67,28 @@ ann.err <- ann.cv(data.pca, nb.pca, nb.class)
 dnn.err <- dnn.cv(data.pca, nb.pca, nb.class)
 cnn.err <- cnn.cv(data.pca, nb.pca, nb.class, 8)
 
+# Final model
+model <- keras_model_sequential()
+model %>% layer_dense(units=nb.pca, activation="relu", input_shape=nb.pca) %>%
+        layer_dense(units=32, activation="relu") %>%
+        layer_dropout(0.5) %>%
+        layer_dense(units=16, activation="relu") %>%
+        layer_dropout(0.5) %>%
+        layer_dense(units=nb.class, activation="softmax")
+model %>% compile(loss="categorical_crossentropy", optimizer='adam', metrics='accuracy')
+model %>% fit(as.matrix(data.pca[,-(nb.pca+1)]), model.matrix(~ -1 + y, data=data.pca),
+              epochs=50, batch_size=128, validation_split=0)
+model %>% evaluate(as.matrix(data.pca[,-(nb.pca+1)]), model.matrix(~ -1 + y, data=data.pca))
+
 # Save model #
-model %>% save_model_hdf5("Rapport/keras_out.h5")
+model %>% save_model_hdf5("Livrable/phoneme.h5")
 model.serialize <- serialize_model(load_model_hdf5("keras_out.h5"))
 model <- unserialize_model(model.serialize)
 
-boxplot(lda.err, qda.err, nb.err,
-        multinom.err, ridge.err, lasso.err,
-        gam.err,
-        rpart.err, prune.err, 
-        bagged.err, rf.err,
-        svm.linear.err, svm.gaus.err,
-        names=c("lda", "qda", "nb", 
-                "lr", "ridge", "lasso",
-                "gam",
-                "rpart", "prune",
-                "bagged", "rf",
-                "svm_l", "svm_g"))
-
-boxplot(ann.err,
-        dnn.err,
-        cnn.err,
-        names=c("ann", 
-                "dnn",
-                "cnn"))
+# test
+setwd("~/SY19_Workspace/sy19_p20_tp10_d2p2d")
+data <- read.table("data/phoneme_train.txt", header = TRUE)
+setwd("~/SY19_Workspace/sy19_p20_tp10_d2p2d/Livrable")
+source("prediction.R")
+pred <- prediction_phoneme(data)
+mean(pred == data$y)

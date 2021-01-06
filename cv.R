@@ -186,7 +186,7 @@ bagged.cv <- function(data, p) {
   return(err)
 }
 
-rf <- function(data, p) {
+rf.cv <- function(data, p) {
   library("randomForest")
   K <- 10
   n <- nrow(data)

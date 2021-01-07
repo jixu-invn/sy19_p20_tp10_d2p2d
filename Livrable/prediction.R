@@ -31,10 +31,8 @@ prediction_letter <- function(dataset) {
 }
 
 prediction_bike <- function(list) {
-  # Chargement de l’environnement
-  load("env.Rdata")
-  # Mon algorithme qui renvoie les prédictions sur le jeu de données
-  # ‘dataset‘ fourni en argument.
-  # ... # ...
+  # Chargement de l environnement
+  load("svm_bike.Rdata")
+  predictions = predict(object = svm_bike,newdata = list)
   return(predictions)
 }

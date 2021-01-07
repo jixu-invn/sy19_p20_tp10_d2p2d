@@ -7,10 +7,13 @@ geometry: margin=2cm
 output:
   bookdown::pdf_document2 : 
     toc : false
+    extra_dependencies: ["float"]
+    
 ---
 
 ```{r, include=FALSE}
 knitr::opts_chunk$set(fig.align = "center")
+knitr::opts_chunk$set(fig.pos = "H", out.extra = "")
 #load("env.RData")
 ```
 
@@ -117,3 +120,62 @@ boxplot(ann.err,
 
 On constate que le modèle réseau neurone profond nous donne une précision la plus haute et une variance plus petite. 
 
+# Bike rental dataset
+
+## Travail préliminaire
+
+Le jeu de donnée contient 12 variables explicatives pour une variable à prédire. On cherche à prédire le nombre de vélo loué une journée en fonction de la saison, des conditions météorologiques, des jours ouvrés etc. Il s'agit d'une tâche de régression. Nous disposons pour cela de 365 observations ce qui est relativement peu. Pour un petit dataset comme celui-là, nous avons décidé d'éliminer d'office les réseaux neuronaux qui nécessitent de grands jeux de données pour converger. Nous essaieront donc les principaux algorithmes d'apprentissage statistique nécessitant peu de données pour fonctionner.
+
+De plus, 7 des 12 prédicteurs sont des variables qualitatives ! Il nous faudra donc des méthodes capables de gérer des variables qualitatives en même temps que des variables quantitative. On pense directement aux arbres de décision qui sont plutôt versatiles. On pouvait penser que certaines variables serait corrélées (saison et mois par exemple) mais puisque la plupart des variables sont qualitatives, une ACP ne fonctionnerait pas. On va donc compter sur les modèles pour sélectionner les bonnes variables. Encore une fois les arbres de décision devraient bien s'en sortir.
+
+## KNN regression
+
+En premier modèle, nous avons testé le modèle KNN, sans nous attendre à ce qu'il performe bien puisque ce dernier ne peut gérer les variables qualitatives. Le paramètre k a été trouvé par nested cross-validation. Comme prévu, le modèle ne performe pas particulièrement et notre meilleure erreur quadratique moyenne est de 483209.3 pour k=7.
+
+![Modèle KNN : Erreur quadratique moyenne en fonction de k, le minimum est atteint en k=7.](./bike_knn.png){#id .class width=12cm height=6cm}
+
+![Boxplot de l'erreur quadratique moyenne pour le modèle de régression KNN.](./bike_knn_error.png){#id .class width=12cm height=6cm}
+
+## Elastic-net regression
+
+Notre prochain modèle va permettre de faire de la sélection de variable. Le modèle Elastic-net, et ses cas particuliers ridge et lasso, permettent de faire une régression en sélectionnant les variables les plus utiles à la prédicitions. Cependant, ils ne se comportent pas bien avec les données qualitatives. Et malheureusement cela rend les modèles peu précis tout comme le modèle KNN (cf. les boxplots d'erreurs).
+
+
+![Boxplot des erreurs quadratiques moyennes pour les méthodes lasson ridge ainsi que elastic net.](./elastic_net.png){#id .class width=12cm height=6cm}
+
+
+## SVM
+
+Un SVM pourrait correctement traiter nos données avec un kernel adéquat sachant que nos données ne sont pas linéaires.
+
+L'astuce est de trouver le bon kernel, ce qui n'est pas simple.
+
+Avec un kernel radial, on trouve par nested cross-validation que le paramètre gamma doit être 1/7. On obtient alors une erreur quadratique moyenne d'environ 250000.
+
+Avec un kernel polynomial, on trouve par nested cross-validation les paramètres du kernel polynomial et on obtient finalement une erreur quadratique moyenne d'environ 800000.
+
+Le kernel linéaire donne de très mauvais résultats comme prévu (mse supérieure à 500000).
+
+![Boxplots des erreurs quadratiques moyennes pour les SVM avec kernel radial et polynomial.](./svm.png){#id .class width=12cm height=6cm}
+
+
+## Decision tree et random forest
+
+C'est la méthode qui semble la plus prometteuse depuis l'analyse préliminaire. En effet, elle est robuste aux données qualitatives et permet aussi de sélectionner les prédicteurs les plus discriminants.
+
+L'arbre de décision seul a tendance à overfit, on preférera donc les random forest qui généralisent mieux.
+
+Comme prévu, l'arbre de décision seul overfit et donne de mauvais résultats : l'erreur quadratique moyenne est d'environ 450000.
+
+La forêt quant à elle n'overfit pas et donne de bons résultats, l'erreur quadratique moyenne est d'environ 250000. Elle égalise donc les performances du svm avec le kernel radial.
+
+![Boxplots des erreurs quadratiques moyennes pour les arbres et forêts de régression.](./tree.png){#id .class width=12cm height=6cm}
+
+## Sélection de modèle
+
+Voilà un récapitulatif général des mse obtenues :
+
+![Boxplots des erreurs quadratiques moyennes pour toutes nos méthodes.](./recap.png){#id .class width=18cm height=9cm}
+
+
+Nous avons donc décidé de retenir la SVM avec kernel radial.

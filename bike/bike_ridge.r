@@ -1,22 +1,50 @@
-source("./bike.r")
+source("../bike/bike.r")
 library(glmnet)
 
-raw_data = import_data_only_numeric()
-X = get_train_and_test_set(raw_data)
+raw_data = import_data_all_numeric()
+raw_data = subset(x=raw_data,select=-c(yr))
 
-reg1 <-glm(cnt~., data =X$train, family ="binomial")
-pred = predict(reg1,newx=X$test_pred)
+errors = c()
+for (i in 1:100) {
+  X = get_train_and_test_set(raw_data)
+  
+  
+  reg1 <- cv.glmnet(as.matrix(X$train_pred),as.matrix(X$train_y), family="gaussian", alpha=0)
+  pred = predict(reg1,newx=as.matrix(X$test_pred))
+  
+  error = erreur_quadratique(pred,X$test_y)
+  errors = append(errors,error)
+}
 
-  knn = knn.reg(train = X$train_pred, test = X$test_pred, y = X$train_y, k = i)
+errors_ridge = errors
 
-error = erreur_quadratique(knn$pred,X$validation_y)
+errors = c()
+for (i in 1:100) {
+  X = get_train_and_test_set(raw_data)
+  
+  
+  reg1 <- cv.glmnet(as.matrix(X$train_pred),as.matrix(X$train_y), family="gaussian", alpha=1)
+  pred = predict(reg1,newx=as.matrix(X$test_pred))
+  
+  error = erreur_quadratique(pred,X$test_y)
+  errors = append(errors,error)
+}
 
-"best_k"
-best_k
-"erreur quadratique test"
-best_error
-"erreur quadratique validation"
-error
+errors_lasso = errors
 
-plot_pred_test_val_vs_y(best_pred,knn$pred, as.matrix(X$validation_y))
+errors = c()
+for (i in 1:100) {
+  X = get_train_and_test_set(raw_data)
+  
+  
+  reg1 <- cv.glmnet(as.matrix(X$train_pred),as.matrix(X$train_y), family="gaussian")
+  pred = predict(reg1,newx=as.matrix(X$test_pred))
+  
+  error = erreur_quadratique(pred,X$test_y)
+  errors = append(errors,error)
+}
 
+errors_elastic = errors
+
+errors = data.frame(errors_lasso,errors_ridge,errors_elastic)
+boxplot(errors)

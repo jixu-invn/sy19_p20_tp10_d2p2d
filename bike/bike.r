@@ -20,8 +20,12 @@ import_data <- function() {
 }
 
 import_data_all_numeric <- function() { # on garde les prédicteurs factoriels mais sous forme numérique
-  X = import_data()
-  X = subset(x = X, select=-cd(dteday))
+  X = read.csv("../data/bike_train.csv", sep=',')
+  X = subset(x = X, select=-c(dteday))
+  if(!instant_present){
+    X = subset(x = X, select=-instant) #on retire l'index de la mesure parce qu'elle n'est pas signifiante
+  }
+  
   X
 }
 
@@ -35,9 +39,9 @@ import_data_only_numeric <- function() { # on en enlève les prédicteurs factorie
 get_train_and_test_set <- function(X) {
   library(caret)
   
-  set.seed(135)
+  #set.seed(135)
   
-  training.samples <- createDataPartition(p = 0.8, list = FALSE, y = X$cnt)
+  training.samples <- createDataPartition(p = 1, list = FALSE, y = X$cnt)
   train = X[training.samples,]
   test = X[-training.samples,]
   
@@ -48,7 +52,6 @@ get_train_and_test_set <- function(X) {
 get_train_test_and_validation_set <- function(X) {
   library(caret)
   
-  set.seed(135)
   
   training.samples <- createDataPartition(p = 0.6, list = FALSE, y = X$cnt)
   train = X[training.samples,]

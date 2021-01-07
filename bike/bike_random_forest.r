@@ -2,31 +2,25 @@ source("./bike.r")
 library(randomForest)
 
 raw_data = import_data()
-X = get_train_and_test_set(raw_data)
+forest_errors = c()
 
-f = randomForest(cnt ~ ., 
-             data = X$train, na.action = na.omit)
+for (i in 1:100) {
 
+  X = get_train_and_test_set(raw_data)
+  
+  f = randomForest(cnt ~ ., 
+               data = X$train, na.action = na.omit)
+  
+  
+  opt = which.min(f$mse)
+  
+  pred = predict(object = f,newdata = X$test_pred)
+  
+  forest_errors = append(forest_error,erreur_quadratique(pred,X$test_y)) #215 767
+}
 
-summary(f)
-plot(f)
-opt = which.min(f$mse)
-opt
-
-pred = predict(object = f,newdata = X$test_pred)
-
-erreur_quadratique(pred,X$test_y) #215 767
-
-plot_pred_vs_y(pred,as.matrix(X$test_y))
-
-
-f = randomForest(cnt ~ ., 
-                 data = X$train, na.action = na.omit, ntree=opt) 
-
-f$mse
-
-pred = predict(object = f,newdata = X$test_pred)
-
-erreur_quadratique(pred,X$test_y) #219 965
-
-plot_pred_vs_y(pred,as.matrix(X$test_y))
+forest_errors = forest_errors[1:100]
+errors_forest = forest_errors
+t_error = data.frame(tree_errors,forest_errors)
+errors_tree = tree_errors
+boxplot(t_error)

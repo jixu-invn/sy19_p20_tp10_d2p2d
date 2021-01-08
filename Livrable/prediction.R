@@ -3,7 +3,6 @@ prediction_phoneme <- function(dataset) {
   library(tensorflow)
   library(keras)
   load("env.Rdata")
-  model.serialize <- serialize_model(load_model_hdf5("phoneme.h5"))
   model <- unserialize_model(model.serialize)
   
   classes <- c("aa", "ao", "dcl","iy", "sh") 

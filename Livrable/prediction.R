@@ -2,7 +2,7 @@ prediction_phoneme <- function(dataset) {
   # Chargement de l’environnement
   library(tensorflow)
   library(keras)
-  load("phoneme.Rdata") # load res.pca
+  load("env.Rdata")
   model.serialize <- serialize_model(load_model_hdf5("phoneme.h5"))
   model <- unserialize_model(model.serialize)
   
@@ -10,7 +10,7 @@ prediction_phoneme <- function(dataset) {
   
   # Transformation ACP
   nb.p <- ncol(dataset)
-  dataset.pca <- as.data.frame((scale(dataset[, -257], center=res.pca$center) %*% res.pca$rotation)[, 1:res.pca$n])
+  dataset.pca <- as.data.frame((scale(dataset[, -257], center=phoneme.pca$center) %*% phoneme.pca$rotation)[, 1:phoneme.pca$n])
   
   # Prédiction
   pred <- predict(model, as.matrix(dataset.pca))
@@ -22,15 +22,33 @@ prediction_phoneme <- function(dataset) {
 }
 
 prediction_letter <- function(dataset) {
-  load("letter_svm.RData")
+  load("env.RData")
   library("kernlab")
-  predictions = predict(object = model.svm,newdata = dataset)
+  if (ncol(dataset) == 17) {
+    newdata <- dataset[, -1]
+  }
+  else {
+    newdata <- dataset
+  }
+  predictions = predict(letter.svm, newdata = newdata)
   return(predictions)
 }
 
-prediction_bike <- function(list) {
+prediction_bike <- function(dataset) {
   # Chargement de l environnement
-  load("svm_bike.Rdata")
-  predictions = predict(object = svm_bike,newdata = list)
+  load("env.Rdata")
+  library("e1071")
+  
+  # Transformation
+  dataset$dteday = as.Date(dataset$dteday,format = "%Y-%m-%d") 
+  dataset$season = as.factor(dataset$season) 
+  dataset$yr = as.factor(dataset$yr) 
+  dataset$mnth = as.factor(dataset$mnth) 
+  dataset$holiday = as.factor(dataset$holiday) 
+  dataset$weekday = as.factor(dataset$weekday) 
+  dataset$workingday = as.factor(dataset$workingday) 
+  dataset$weathersit = as.factor(dataset$weathersit) 
+  
+  predictions = predict(object = bike.svm, newdata = dataset[, -14])
   return(predictions)
 }

@@ -22,11 +22,9 @@ prediction_phoneme <- function(dataset) {
 }
 
 prediction_letter <- function(dataset) {
-  # Chargement de l’environnement
-  load("env.Rdata")
-  # Mon algorithme qui renvoie les prédictions sur le jeu de données
-  # ‘dataset‘ fourni en argument.
-  # ...
+  load("letter_svm.RData")
+  library("kernlab")
+  predictions = predict(object = model.svm,newdata = dataset)
   return(predictions)
 }
 
